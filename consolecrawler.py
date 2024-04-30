@@ -10,16 +10,26 @@ GREEN = '\033[92m'
 WHITE = '\033[97m'
 RESET = '\033[0m'
 
-def get_links(url):
+def get_ip_address(url):
     try:
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an exception for 4xx or 5xx status codes
-        soup = BeautifulSoup(response.text, 'html.parser')
-        links = [urljoin(url, link['href']) for link in soup.find_all('a', href=True)]
-        return links
-    except requests.RequestException as e:
-        print(f"Error fetching links from {url}: {e}")
-        return []
+        # Check if the URL starts with 'http://' or 'https://'
+        if url.startswith('http://') or url.startswith('https://'):
+            # Split the URL into parts
+            parts = url.split('//')[1].split('/')
+            if len(parts) < 1:
+                raise ValueError("Invalid URL format")
+            
+            # Get the hostname from the URL
+            hostname = parts[0]
+            
+            # Get the IP address of the hostname
+            ip_address = socket.gethostbyname(hostname)
+            return ip_address
+        else:
+            raise ValueError("URL must start with 'http://' or 'https://'")
+    except (socket.gaierror, ValueError) as e:
+        print(f"Error getting IP address for {url}: {e}")
+        return "IP not found"
 
 def get_ip_address(url):
     try:
