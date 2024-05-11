@@ -3,3 +3,4 @@ requests
 urljoin
 aiohttp
 validators
+aiohtpp
