@@ -20,7 +20,6 @@ RESET = '\033[0m'
 def clear_console():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-
 def print_header():
     print(f"{GREEN} _  _  _ _______ ______     _______ ______  _______ _  _  _ _       _______ ______")
     print(f"(_)(_)(_|_______|____  \\   (_______|_____ \\(_______|_)(_)(_|_)     (_______|_____ \\ ")
@@ -82,9 +81,10 @@ async def crawl_website(url, session, printed=set(), collected_links={}, depth=0
                     return
 
                 if link not in printed and urlparse(link).scheme in {'http', 'https'}:
-                    print(f"   - URL: {WHITE}{link}{RESET}")
+                    ip_address = get_ip_address(link)
+                    print(f"   - URL: {WHITE}{link}{RESET} (IP: {GREEN}{ip_address}{RESET})")
                     printed.add(link)
-                    collected_links[link] = None  # Placeholder for IP address
+                    collected_links[link] = ip_address
 
                     parsed_url = urlparse(link)
                     if parsed_url.netloc == urlparse(url).netloc:
@@ -93,25 +93,28 @@ async def crawl_website(url, session, printed=set(), collected_links={}, depth=0
         logging.error(f"Error crawling website {url}: {e}")
         print(f"Error crawling website {url}: {e}")
 
-async def analyze_website_structure(collected_links):
+async def analyze_website_structure(collected_links, filename):
     try:
-        print(f"\n{GREEN}Website Structure:{RESET}")
         structure = {}
         for link in collected_links.keys():
             parts = urlparse(link).path.strip('/').split('/')
             current = structure
             for part in parts:
                 current = current.setdefault(part, {})
-        print_structure(structure)
+        
+        with open(filename, 'w') as file:
+            _write_structure_to_file(structure, file)
+        
+        print(f"\n{GREEN}Website structure saved to{RESET} {WHITE}{filename}{RESET}")
     except Exception as e:
         logging.error(f"Error analyzing website structure: {e}")
         print(f"Error analyzing website structure: {e}")
 
-def print_structure(structure, indent=0):
+def _write_structure_to_file(structure, file, indent=0):
     for key, value in structure.items():
-        print(" " * indent + f"- {key}")
+        file.write(" " * indent + f"- {key}\n")
         if isinstance(value, dict):
-            print_structure(value, indent + 4)
+            _write_structure_to_file(value, file, indent + 4)
 
 async def main():
     print_header()
@@ -150,6 +153,11 @@ async def fast_small_urls():
         await save_links_to_file(collected_links, filename)
     else:
         print("\nLinks Not Saved.")
+    
+    analyze_option = input("\nDo You Want to Analyze the Website Structure? (yes/no): ").lower()
+    if analyze_option == 'yes':
+        structure_filename = input("Enter the Filename to Save the Structure (e.g., structure.txt): ")
+        await analyze_website_structure(collected_links, structure_filename)
 
 async def slow_big_urls():
     website_url = input("Enter the Website URL You Want to Crawl: ")
@@ -174,7 +182,8 @@ async def slow_big_urls():
 
     analyze_option = input("\nDo You Want to Analyze the Website Structure? (yes/no): ").lower()
     if analyze_option == 'yes':
-        await analyze_website_structure(collected_links)
+        structure_filename = input("Enter the Filename to Save the Structure (e.g., structure.txt): ")
+        await analyze_website_structure(collected_links, structure_filename)
 
 if __name__ == "__main__":
     asyncio.run(main())
