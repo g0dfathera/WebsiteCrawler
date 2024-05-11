@@ -9,10 +9,10 @@ cd WebsiteCrawler
 
 pip3 install -r requirements.txt
 
-python3 consolecrawler.py
+python3 WebCrawler.py
 ```
 
-Website Crawler Written in Python.
+Website Crawler and Analyzer is Written in Python.
 
 This tool is made for educational purposes only.
 I take no responsibility if anyone uses this tool illegally.
