@@ -3,7 +3,7 @@
 To Install and Use, Write Next Commands:
 
 ```
-git clone https://github.com/Natlimama/WebsiteCrawler.git
+git clone https://github.com/G0dfathera/WebsiteCrawler.git
 
 cd WebsiteCrawler
 
