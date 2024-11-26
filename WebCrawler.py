@@ -5,7 +5,6 @@ import sys
 import socket
 import time
 from urllib.parse import urlparse, urljoin
-
 import aiohttp
 import validators
 from bs4 import BeautifulSoup
