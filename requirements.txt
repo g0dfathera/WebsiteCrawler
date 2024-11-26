@@ -1,6 +1,4 @@
-beautifulsoup4
-requests
-urljoin
-aiohttp
-validators
-aiohtpp
+aiohttp==3.8.1
+beautifulsoup4==4.12.2
+validators==0.20.0
+lxml==4.9.3
