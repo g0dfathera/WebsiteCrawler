@@ -8,6 +8,7 @@ from urllib.parse import urlparse, urljoin
 import aiohttp
 import validators
 from bs4 import BeautifulSoup
+import csv
 
 # ANSI escape codes for colors
 GREEN = '\033[92m'
@@ -31,15 +32,17 @@ def clear_console():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 def print_header():
-    print(f"{GREEN} _  _  _ _______ ______     _______ ______  _______ _  _  _ _       _______ ______")
-    print(f"(_)(_)(_|_______|____  \\   (_______|_____ \\(_______|_)(_)(_|_)     (_______|_____ \\ ")
-    print(f" _  _  _ _____   ____)  )   _       _____) )_______ _  _  _ _       _____   _____) )")
-    print(f"| || || |  ___) |  __  (   | |     |  __  /|  ___  | || || | |     |  ___) |  __  / ")
-    print(f"| || || | |_____| |__)  )  | |_____| |  \\ \\| |   | | || || | |_____| |_____| |  \\ \\ ")
-    print(f" \\_____/|_______)______/    \\______)_|   |_|_|   |_|\\_____/|_______)_______)_|   |_|")
+    print(f"{GREEN}+============================================================+")
+    print(f"| __        __   _      ____                    _            |")
+    print(f"| \ \      / /__| |__  / ___|_ __ __ ___      _| | ___ _ __  |")
+    print(f"|  \ \ /\ / / _ \ '_ \| |   | '__/ _` \ \ /\ / / |/ _ \ '__| |")
+    print(f"|   \ V  V /  __/ |_) | |___| | | (_| |\ V  V /| |  __/ |    |")
+    print(f"|    \_/\_/ \___|_.__/ \____|_|  \__,_| \_/\_/ |_|\___|_|    |")
+    print(f"+============================================================+")
     print(f"  ")
-    print(f"{RESET}{GREEN}Welcome to Website Link Crawler!{RESET}")
-    print(f"{WHITE}--------------------------------\n{RESET}")
+    print(f"{RESET}{GREEN}Welcome to Website Crawler!")
+    print(f"--------------------------------\n")
+
 
 async def fetch(url, session, retries=3):
     for attempt in range(retries):
@@ -70,36 +73,16 @@ def get_ip_address(url):
         print(f"Error getting IP address for {url}: {e}")
         return "IP not found"
 
-async def save_links_to_file(links, filename):
+def save_links_to_csv(links, filename):
     try:
-        with open(filename, 'w') as file:
+        with open(filename, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['URL', 'No.'])
             for link, ip_address in links.items():
-                file.write(f"{link},{ip_address}\n")
+                writer.writerow([link, ip_address])
         print(f"\n{GREEN}Links saved to{RESET} {WHITE}{filename}{RESET}")
     except Exception as e:
-        print(f"Error saving links to file: {e}")
-
-async def analyze_website_structure(collected_links, filename):
-    try:
-        structure = {}
-        for link in collected_links.keys():
-            parts = urlparse(link).path.strip('/').split('/')
-            current = structure
-            for part in parts:
-                current = current.setdefault(part, {})
-        
-        with open(filename, 'w') as file:
-            _write_structure_to_file(structure, file)
-        
-        print(f"\n{GREEN}Website structure saved to{RESET} {WHITE}{filename}{RESET}")
-    except Exception as e:
-        print(f"Error analyzing website structure: {e}")
-
-def _write_structure_to_file(structure, file, indent=0):
-    for key, value in structure.items():
-        file.write(" " * indent + f"- {key}\n")
-        if isinstance(value, dict):
-            _write_structure_to_file(value, file, indent + 4)
+        print(f"Error saving links to CSV file: {e}")
 
 def is_valid_url(url, base_domain):
     parsed_url = urlparse(url)
@@ -129,7 +112,7 @@ async def crawl_website(url, session, printed=set(), collected_links={}, depth=0
                         ip_address = get_ip_address(link)
                         print(f"   - URL: {WHITE}{link}{RESET} (IP: {GREEN}{ip_address}{RESET})")
                         printed.add(link)
-                        collected_links[link] = ip_address
+                        collected_links[link] = depth
 
                         parsed_url = urlparse(link)
                         if parsed_url.netloc == urlparse(url).netloc:
@@ -156,16 +139,16 @@ async def main():
     signal.signal(signal.SIGINT, handle_signal)  # Handle Ctrl+C
 
     print(f"{CYAN}Which Code Do You Want To Use?{RESET}\n")
-    print(f"1. Fast, But Small Amount Of URLs.")
-    print(f"2. Slow, But Big Amount Of URLs.")
+    print(f"1. Slow, But Big Amount Of URLs.")
+    print(f"2. Fast, But Small Amount Of URLs.")
 
     option = input("\nEnter the Option Number: ")
 
-    if option == "1":
+    if option == "2":
         clear_console()
         print(f"{MAGENTA}Selected: Fast, But Small Amount Of URLs.{RESET}")
         await fast_small_urls()
-    elif option == "2":
+    elif option == "1":
         clear_console()
         print(f"{MAGENTA}Selected: Slow, But Big Amount Of URLs.{RESET}")
         await slow_big_urls()
@@ -185,17 +168,12 @@ async def fast_small_urls():
         collected_links = {}
         await crawl_website(website_url, session, collected_links=collected_links, max_depth=max_depth, max_urls=max_urls)
 
-    save_option = input("\nDo You Want to Save the Links to a File? (yes/no): ").lower()
+    save_option = input("\nDo You Want to Save the Links to a CSV File? (yes/no): ").lower()
     if save_option == 'yes':
-        filename = input("Enter the Filename to Save the Links (e.g., links.txt): ")
-        await save_links_to_file(collected_links, filename)
+        filename = input("Enter the Filename to Save the Links (e.g., links.csv): ")
+        save_links_to_csv(collected_links, filename)
     else:
         print("\nLinks Not Saved.")
-    
-    analyze_option = input("\nDo You Want to Analyze the Website Structure? (yes/no): ").lower()
-    if analyze_option == 'yes':
-        structure_filename = input("Enter the Filename to Save the Structure (e.g., structure.txt): ")
-        await analyze_website_structure(collected_links, structure_filename)
 
 async def slow_big_urls():
     website_url = input("Enter the Website URL You Want to Crawl: ")
@@ -211,17 +189,12 @@ async def slow_big_urls():
 
     print(f"\n{GREEN}Crawling completed in {end_time - start_time:.2f} seconds.{RESET}")
 
-    save_option = input("\nDo You Want to Save the Links to a File? (yes/no): ").lower()
+    save_option = input("\nDo You Want to Save the Links to a CSV File? (yes/no): ").lower()
     if save_option == 'yes':
-        filename = input("Enter the Filename to Save the Links (e.g., links.txt): ")
-        await save_links_to_file(collected_links, filename)
+        filename = input("Enter the Filename to Save the Links (e.g., links.csv): ")
+        save_links_to_csv(collected_links, filename)
     else:
         print("\nLinks Not Saved.")
-
-    analyze_option = input("\nDo You Want to Analyze the Website Structure? (yes/no): ").lower()
-    if analyze_option == 'yes':
-        structure_filename = input("Enter the Filename to Save the Structure (e.g., structure.txt): ")
-        await analyze_website_structure(collected_links, structure_filename)
 
 if __name__ == "__main__":
     asyncio.run(main())
