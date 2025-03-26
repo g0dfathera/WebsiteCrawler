@@ -49,14 +49,16 @@ async def fetch(url, session, retries=3):
         async with semaphore:
             try:
                 async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
-                    response.raise_for_status()
-                    return await response.text()
+                    status_code = response.status  # Get the HTTP status code
+                    html = await response.text()
+                    return html, status_code  # Return both HTML and status
             except aiohttp.ClientError as e:
                 if attempt < retries - 1:
                     await asyncio.sleep(2 ** attempt)  # Exponential backoff
                 else:
                     print(f"Error fetching {url}: {e}")
-                    return None
+                    return None, None  # Return None for both in case of error
+
 
 def get_links(html, base_url):
     soup = BeautifulSoup(html, 'html.parser')
@@ -77,12 +79,13 @@ def save_links_to_csv(links, filename):
     try:
         with open(filename, 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['URL', 'No.'])
-            for link, ip_address in links.items():
-                writer.writerow([link, ip_address])
+            writer.writerow(['URL', 'Status Code'])
+            for link, status_code in links.items():
+                writer.writerow([link, status_code])
         print(f"\n{GREEN}Links saved to{RESET} {WHITE}{filename}{RESET}")
     except Exception as e:
         print(f"Error saving links to CSV file: {e}")
+
 
 def is_valid_url(url, base_domain):
     parsed_url = urlparse(url)
@@ -91,18 +94,18 @@ def is_valid_url(url, base_domain):
 async def crawl_website(url, session, printed=set(), collected_links={}, depth=0, max_depth=None, max_urls=None):
     try:
         if stop_event.is_set():
-            return  # Exit if stopped
+            return
 
         if max_depth is not None and depth >= max_depth:
             return
 
-        html = await fetch(url, session)
-        if html:
+        html, status_code = await fetch(url, session)  # Get both HTML and status
+        if html is not None:
             links = get_links(html, url)
 
             for link in links:
                 if stop_event.is_set():
-                    return  # Exit if stopped
+                    return
 
                 if max_urls is not None and len(collected_links) >= max_urls:
                     return
@@ -110,9 +113,10 @@ async def crawl_website(url, session, printed=set(), collected_links={}, depth=0
                 if link not in printed and urlparse(link).scheme in {'http', 'https'}:
                     if is_valid_url(link, urlparse(url).netloc):
                         ip_address = get_ip_address(link)
-                        print(f"   - URL: {WHITE}{link}{RESET} (IP: {GREEN}{ip_address}{RESET})")
+                        print(f"   - URL: {WHITE}{link}{RESET} (Status: {YELLOW}{status_code}{RESET}, IP: {GREEN}{ip_address}{RESET})")
+
                         printed.add(link)
-                        collected_links[link] = depth
+                        collected_links[link] = status_code  # Store status code instead of depth
 
                         parsed_url = urlparse(link)
                         if parsed_url.netloc == urlparse(url).netloc:
