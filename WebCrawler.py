@@ -89,25 +89,37 @@ def save_links_to_csv(links, filename):
         print(f"Error saving links to CSV file: {e}")
 
 
+
 def is_valid_url(url, base_domain):
     parsed_url = urlparse(url)
     return parsed_url.netloc.endswith(base_domain)
 
-async def crawl_website(url, session, printed=set(), collected_links={}, depth=0, max_depth=None, max_urls=None):
+async def crawl_website(url, session, printed=None, collected_links=None, depth=0, max_depth=None, max_urls=None, log_func=print, pause_event=None, stop_event=None,):
+    if printed is None:
+        printed = set()
+    if collected_links is None:
+        collected_links = {}
+
     try:
-        if stop_event.is_set():
+        if stop_event is not None and stop_event.is_set():
             return
 
         if max_depth is not None and depth >= max_depth:
             return
 
-        html, status_code = await fetch(url, session)  # Get both HTML and status
+        if pause_event is not None:
+            await pause_event.wait()
+
+        html, status_code = await fetch(url, session)
         if html is not None:
             links = get_links(html, url)
 
             for link in links:
-                if stop_event.is_set():
+                if stop_event is not None and stop_event.is_set():
                     return
+
+                if pause_event is not None:
+                    await pause_event.wait()
 
                 if max_urls is not None and len(collected_links) >= max_urls:
                     return
@@ -115,16 +127,30 @@ async def crawl_website(url, session, printed=set(), collected_links={}, depth=0
                 if link not in printed and urlparse(link).scheme in {'http', 'https'}:
                     if is_valid_url(link, urlparse(url).netloc):
                         ip_address = get_ip_address(link)
-                        print(f"   - URL: {WHITE}{link}{RESET} (Status: {YELLOW}{status_code}{RESET}, IP: {GREEN}{ip_address}{RESET})")
+
+                        log_func(f"   - URL: {link} (Status: {status_code}, IP: {ip_address})")
 
                         printed.add(link)
-                        collected_links[link] = status_code  # Store status code instead of depth
+                        collected_links[link] = status_code
 
                         parsed_url = urlparse(link)
                         if parsed_url.netloc == urlparse(url).netloc:
-                            await crawl_website(link, session, printed, collected_links, depth + 1, max_depth, max_urls)
+                            await crawl_website(
+                                link,
+                                session,
+                                printed=printed,
+                                collected_links=collected_links,
+                                depth=depth + 1,
+                                max_depth=max_depth,
+                                max_urls=max_urls,
+                                log_func=log_func,
+                                pause_event=pause_event,
+                                stop_event=stop_event,
+                            )
     except Exception as e:
-        print(f"Error crawling website {url}: {e}")
+        log_func(f"Error crawling website {url}: {e}")
+
+
 
 def handle_signal(signum, frame):
     global stop_counter
