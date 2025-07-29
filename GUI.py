@@ -154,24 +154,28 @@ class CrawlerGUI:
             messagebox.showwarning("Nothing to Save", "No links collected.")
             return
 
-        filetype = messagebox.askquestion("Save as", "Save as CSV? Click 'No' to save as TXT.")
-
-        if filetype == 'yes':
-            filetypes = [("CSV files", "*.csv")]
-            default_ext = ".csv"
-            save_func = self.save_as_csv
-        else:
-            filetypes = [("Text files", "*.txt")]
-            default_ext = ".txt"
-            save_func = self.save_as_txt
-
         filepath = filedialog.asksaveasfilename(
-            defaultextension=default_ext,
-            filetypes=filetypes,
+            defaultextension=".txt",
+            filetypes=[
+                ("CSV files", "*.csv"),
+                ("Text files", "*.txt"),
+                ("All files", "*.*")
+            ],
             title="Save file as"
         )
         if filepath:
-            save_func(filepath)
+            ext = filepath.split('.')[-1].lower()
+            try:
+                if ext == 'csv':
+                    save_links_to_csv(self.collected_links, filepath)
+                else:
+                    with open(filepath, 'w', encoding='utf-8') as f:
+                        for link in self.collected_links:
+                            f.write(link + "\n")
+                messagebox.showinfo("Saved", f"Links saved to {filepath}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to save file: {e}")
+
 
     def save_as_csv(self, filepath):
         try:
