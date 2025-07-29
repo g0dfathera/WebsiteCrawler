@@ -1,18 +1,19 @@
-# Installing WebCrawler
+# Website Crawler and Analyzer
 
-To Install and Use, Write Next Commands:
+A Python-based asynchronous web crawler with both GUI and CLI, that extracts URLs from websites, supports configurable crawl depth and URL limits, and provides options to save results in CSV or TXT formats.
+
+## Installation and Usage
+
+Clone the repository and install dependencies:
 
 ```
 git clone https://github.com/G0dfathera/WebsiteCrawler.git
-
 cd WebsiteCrawler
-
-pip3 install -r requirements.txt
-
-python3 WebCrawler.py
+pip install -r requirements.txt
+python WebCrawler.py
 ```
-
-Website Crawler and Analyzer is Written in Python.
-
-This tool is made for educational purposes only.
-I take no responsibility if anyone uses this tool illegally.
+OR
+```
+python GUI.py
+```
+This tool is intended for educational purposes only. Use responsibly.
