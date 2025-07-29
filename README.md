@@ -10,6 +10,9 @@ Clone the repository and install dependencies:
 git clone https://github.com/G0dfathera/WebsiteCrawler.git
 cd WebsiteCrawler
 pip install -r requirements.txt
+```
+## To run use:
+```
 python WebCrawler.py
 ```
 OR
